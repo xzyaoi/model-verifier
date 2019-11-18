@@ -1,0 +1,4 @@
+.vscode
+*.pyc
+test_cases/
+venv/

@@ -1,8 +1,7 @@
 # RIAI 2019 Course Project
 
-
-
 ## Folder structure
+
 In the directory `code` you can find 2 files. 
 File `networks.py` contains encoding of fully connected and convolutional neural network architectures as PyTorch classes.
 The architectures extend `nn.Module` object and consist of standard PyTorch layers (`Linear`, `Flatten`, `ReLU`, `Conv2d`). Please note that first layer of each network performs normalization of the input image.

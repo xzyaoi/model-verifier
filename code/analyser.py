@@ -8,15 +8,21 @@ DEVICE = 'cpu'
 
 
 def fast_bound_multiplication(a, b_l, b_u):
+    """
+    fast bound multiplication
+    
+    @params:
+    a: layer weight
+    b_l: lower bound for input
+    b_u: upper bound for input
 
-    # a is weight
-    # b is input, where perturbation happens
+    @return:
+    lower_bound, upper_bound 
+    """
     a_positive = F.relu(a)
     a_negative = -F.relu(-a)
-    c_t_u = torch.einsum('ik, kj -> ij', a_positive, b_u) + \
-        torch.einsum('ik, kj -> ij', a_negative, b_l)
-    c_t_l = torch.einsum('ik, kj -> ij', a_negative, b_u) + \
-        torch.einsum('ik, kj -> ij', a_positive, b_l)
+    c_t_u = torch.matmul(a_positive, b_u) + torch.matmul(a_negative, b_l)
+    c_t_l = torch.matmul(a_negative, b_u) + torch.matmul(a_positive, b_l)
     return c_t_l.transpose(0, 1), c_t_u.transpose(0, 1)
 
 
@@ -70,6 +76,7 @@ def calc_bound_relu(lower_bound, upper_bound, input_value):
 
     # Calculate the slope for each error term
     _, bound_length = lower_bound.shape
+    # maybe boost by map
     for i in range(bound_length):
         slopes.append(get_slope(lower_bound[0, i], upper_bound[0, i]))
     for i in range(len(slopes)):

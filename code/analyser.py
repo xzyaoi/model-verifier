@@ -20,7 +20,7 @@ def fast_bound_multiplication(a, b_l, b_u):
     lower_bound, upper_bound 
     """
     a_positive = F.relu(a)
-    a_negative = -F.relu(-a)
+    a_negative = -F.relu(-a) #(100, 784)
     c_t_u = torch.matmul(a_positive, b_u) + torch.matmul(a_negative, b_l)
     c_t_l = torch.matmul(a_negative, b_u) + torch.matmul(a_positive, b_l)
     return c_t_l.transpose(0, 1), c_t_u.transpose(0, 1)
@@ -42,6 +42,22 @@ def analyse_fc(network, image_matrix, eps_init):
     print(c_l)
     print(c_u)
 
+def analyse_fc_mul(network, image_matrix, eps_init):
+    # get inputs
+    fc_input = get_preprocess_result(
+        network, image_matrix, eps_init)
+    num_layer = len(network.layers)
+    for i in range(2, num_layer-1, 2):
+        current_layer = network.layers[i]
+        a_l, a_u = calc_bound_fc(current_layer, fc_input, eps_init)
+        r_l, r_u = calc_bound_relu(a_l, a_u, current_layer(fc_input))
+        fc_input = F.relu(current_layer(fc_input))
+    r_l_t = torch.Tensor([r_l])
+    u_l_t = torch.Tensor([r_u])
+    c_l, c_u = fast_bound_multiplication(
+        network.layers[num_layer - 1].weight, r_l_t.transpose(0, 1), u_l_t.transpose(0, 1))
+    print(c_l)
+    print(c_u)
 
 def calc_bound_fc(layer, layer_input, eps):
     input_lower = (layer_input - eps).transpose(0, 1)
@@ -87,6 +103,7 @@ def calc_bound_relu(lower_bound, upper_bound, input_value):
     return l_bounds, u_bounds
 
 
+# do not need eps actually.
 def get_preprocess_result(network, image_matrix, eps):
     if isinstance(network, FullyConnected):
         preprocess_layers = network.layers[:2]

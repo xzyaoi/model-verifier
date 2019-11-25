@@ -6,9 +6,7 @@ import torch
 from networks import Normalization, FullyConnected, Conv
 from utils import get_network_real_input, \
     solve_matrix_multiplication_bound, \
-    solve_zonotope_bound
-
-from utils import Zonotope
+    Zonotope
 
 DEVICE = 'cpu'
 
@@ -28,9 +26,16 @@ def analyse_fc(net, inputs, eps):
     # get bound for first fc layer
     a_0 = F.linear(inputs, net.layers[2].weight, net.layers[2].bias)
     a_0_params = net.layers[2].weight
-    z = Zonotope(a_0, a_0_params, eps)
-    z.relax()
-    pass
+    # now enters relu-fc-relu-fc...
+    layers = net.layers[3:-1]
+    print(layers)
+    z = Zonotope(a_0, a_0_params, eps)      
+    zonotopes = []
+    for i in range(len(layers)):
+        zonotopes = z.relax()
+        i = i+1
+    # now enters the final fc
+    print(zonotopes)
 
 
 def analyse_conv(net, inputs, eps):

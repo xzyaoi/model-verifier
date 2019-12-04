@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from networks import Normalization, FullyConnected, Conv
-from new_utils import Zonotope, get_network_real_input
+from new_utils import get_network_real_input
+from zonotope import Zonotope, Layer
 
 DEVICE = 'cpu'
 
@@ -20,20 +21,32 @@ def analyse_fc(net, inputs, eps):
     """
     network: fc-relu-fc-relu-fc
     """
-    real_output = net.layers[2](inputs)
+    real_output = net.layers[3](inputs)
     layers = net.layers[2:]
     _ , first_fc_input_length  = inputs.shape
-    eps_params = torch.Tensor(1, first_fc_input_length)
-    eps_params.fill_(eps)
-    z = Zonotope(inputs, eps_params, name="init")
-    lower, upper = z.get_bound()
-    # now enters fc-relu-fc
+    init_zonotopes = [Zonotope(a_0, [eps]) for a_0 in inputs[0]]
+    previous_layer = Layer(init_zonotopes)
     i=0
     while(i < len(layers)):
-        z = z.linear(layers[i].weight, layers[i].bias)
+        # fc
+        fc_layer = previous_layer
+        fc_out = fc_layer.perform_linear(layers[i].weight, layers[i].bias)
+        print(len(fc_out))
+        i = i+1
+        # relu
+        relu_out = fc_out.perform_relu()
+        lower, upper = relu_out.calc_bounds()
+        print(lower)
+        print(real_output)
+        print(upper)
+        previous_layer = relu_out
+        print(len(relu_out))
+        # print(lower)
+        # print(real_output)
+        # print(upper)
         i = i+1
         
-        i = i+1
+        
 
 def analyse_conv(net, inputs, eps):
     pass

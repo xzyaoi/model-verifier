@@ -2,11 +2,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-
 from networks import Normalization, FullyConnected, Conv
-from utils import get_network_real_input, \
-    solve_matrix_multiplication_bound, \
-    Zonotope
+from new_utils import Zonotope, get_network_real_input
 
 DEVICE = 'cpu'
 
@@ -24,26 +21,15 @@ def analyse_fc(net, inputs, eps):
     network: fc-relu-fc-relu-fc
     """
     real_output = net.layers[2](inputs)
-    a_0 = F.linear(inputs, net.layers[2].weight, net.layers[2].bias)
-    a_0_params = net.layers[2].weight
-    # now enters relu-fc-relu-fc...
-    layers = net.layers[3:]
-    # initial zonotope
-    z = Zonotope(a_0, a_0_params, eps, name="initial_zonotopes")
+    layers = net.layers[2:]
+    _ , first_fc_input_length  = inputs.shape
+    eps_params = torch.Tensor(1, first_fc_input_length)
+    eps_params.fill_(eps)
+    z = Zonotope(inputs, eps_params, name="init")
+    lower, upper = z.get_bound()
+    # now enters fc-relu-fc
     i=0
-    while(i<len(layers)-1):
-        # relu
-        # z.print()
-        print(net.layers[:3+i])
-        real_relu_input = net.layers[:3+i](inputs)
-        z = z.relax(real_relu_input)
-        z.print()
-        lower_bound, upper_bound = z.get_bounds()
-        print(lower_bound)
-        print(real_output)
-        print(upper_bound)
-        # fc
-        i=i+1
+    while(i < len(layers)):
         z = z.linear(layers[i].weight, layers[i].bias)
         i=i+1
     lower_bounds, upper_bounds = z.get_final_bounds()

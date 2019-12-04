@@ -43,7 +43,7 @@ def merge_neuros(neuros):
 
 
 def relu_relaxation(input_a0, lower_bound, upper_bound, xs):
-    def calc_each_form(a_0, l, u,x):
+    def calc_each_form(a_0, l, u, x):
         if (u <= 0):
             return 0, 0, 0
         elif (l >= 0):
@@ -101,8 +101,14 @@ class Zonotope(object):
         else:
             pass
         _, bound_length = lower_bound.shape
+        zonotopes = []
         for i in range(bound_length):
-            pass
+            new_a0, new_params, new_eps = calc_each_form(
+                input_a0[0, i], lower_bound[0, i], upper_bound[0, i], xs[0,i])
+            zonotopes.append(Zonotope(new_a0, new_params, new_eps))
+        new_zonotope = merge_neuros(zonotopes)
+        # now plugin x into new zonotope
+        
 
     def linear(self, weight, bias):
         a_0 = F.linear(self.a_0, weight, bias)

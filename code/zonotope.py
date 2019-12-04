@@ -44,12 +44,13 @@ class Layer(object):
 
     def perform_linear(self, weight, bias):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
-        params = torch.Tensor([sum(z.eps_params) for z in self.zonotopes])
-        print('params are')
-        print(params.shape)
+        # shape is dim * k(#eps)
+        # for i in self.zonotopes: print(i.eps_params)
+        params_map = torch.Tensor([z.eps_params for z in self.zonotopes])
+        # params = torch.Tensor([sum(z.eps_params) for z in self.zonotopes])
         new_a_0 = F.linear(a_0, weight, bias)
-        new_params = F.linear(params, weight, bias)
-        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params)]
+        new_params = F.linear(params_map.transpose(0,1), weight, bias)
+        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params[0])]
         return Layer(zonotopes)
 
     def perform_relu(self):

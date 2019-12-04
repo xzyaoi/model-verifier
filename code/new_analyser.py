@@ -37,6 +37,8 @@ def analyse_fc(net, inputs, eps):
     # now enters the final fc
     print(zonotopes)
 
+def analyse_fc2(net, input, eps):
+    pass
 
 def analyse_conv(net, inputs, eps):
     pass

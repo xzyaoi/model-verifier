@@ -23,19 +23,31 @@ def analyse_fc(net, inputs, eps):
     """
     network: fc-relu-fc-relu-fc
     """
-    # get bound for first fc layer
+    real_output = net.layers[2](inputs)
     a_0 = F.linear(inputs, net.layers[2].weight, net.layers[2].bias)
     a_0_params = net.layers[2].weight
     # now enters relu-fc-relu-fc...
-    layers = net.layers[3:-1]
-    print(layers)
-    z = Zonotope(a_0, a_0_params, eps)      
-    zonotopes = []
-    for i in range(len(layers)):
-        zonotopes = z.relax()
-        i = i+1
+    layers = net.layers[3:]
+    # initial zonotope
+    z = Zonotope(a_0, a_0_params, eps, name="initial_zonotopes")
+    i=0
+    while(i<len(layers)-1):
+        # relu
+        # z.print()
+        print(net.layers[:3+i])
+        real_relu_input = net.layers[:3+i](inputs)
+        z = z.relax(real_relu_input)
+        z.print()
+        lower_bound, upper_bound = z.get_bounds()
+        print(lower_bound)
+        print(real_output)
+        print(upper_bound)
+        # fc
+        i=i+1
+        z = z.linear(layers[i].weight, layers[i].bias)
+        i=i+1
+    lower_bounds, upper_bounds = z.get_final_bounds()
     # now enters the final fc
-    print(zonotopes)
 
 def analyse_fc2(net, input, eps):
     pass

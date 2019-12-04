@@ -20,17 +20,20 @@ def relu_relax_single_neuro(a_0, eps_params):
     upper = 0
     for each in eps_params:
         if (each > 0):
-            lower = lower + each
+            lower = lower - each
             upper = upper + each
         else:
             upper = upper - each
-            lower = lower - each
+            lower = lower + each
     l = a_0 + lower
     u = a_0 + upper
     if (u <= 0):
-        return 0, 0
+        eps_params.append(0)
+        return 0, eps_params
     elif (l >= 0):
-        return a_0, 0
+        eps_params.append(0)
+        return a_0, eps_params
     else:
         slope = upper/(upper-lower)
-        return slope*a0-slope*lower/2, eps_params.append(-slope*lower/2)
+        eps_params.append(-slope*lower/2)
+        return slope*a_0-slope*lower/2, eps_params

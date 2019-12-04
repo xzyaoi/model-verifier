@@ -13,11 +13,15 @@ class Zonotope(object):
         self.eps = 1
 
     def get_bound(self):
-        self.eps_params = torch.Tensor(self.eps_params)
-        positive = F.relu(self.eps_params)
-        negative = -F.relu(-self.eps_params)
-        upper = positive * self.eps + negative * (-self.eps)
-        lower = positive * (-self.eps) + negative * (self.eps)
+        lower = 0
+        upper = 0
+        for each in self.eps_params:
+            if each <=0:
+                lower = lower + each
+                upper = upper - each
+            else:
+                lower = lower - each
+                upper = upper + each
         return self.a_0 + lower, self.a_0 + upper
 
     def relax(self, method):

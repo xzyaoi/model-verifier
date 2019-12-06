@@ -39,7 +39,6 @@ def relu_relax_single_neuro(a_0, eps_params):
         return slope*a_0-slope*lower/2, eps_params
 
 def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
-    print("last layer: " + str(layers[-1]))
     reals = layers(inputs)
     lowers, uppers = zono_layer.calc_bounds()
     for i, item in enumerate(reals):
@@ -47,5 +46,17 @@ def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
         u = uppers[i]
         real = reals[0, i]
         if not (l<real and u > real):
+            print("[err] last layer: " + str(layers[-1])+ "cannot pass boundary check!")
             return False
+    print("[info] last layer: " + str(layers[-1])+ "passed boundary check!")
     return True
+
+def isVerified(lower, upper, real_label):
+    true_lower = lower[real_label]
+    true_upper = upper[real_label]
+    upper.remove(true_upper)
+    false_upper = max(upper)
+    if (true_lower > false_upper):
+        return True
+    else:
+        return False

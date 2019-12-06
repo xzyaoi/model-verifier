@@ -37,3 +37,15 @@ def relu_relax_single_neuro(a_0, eps_params):
         slope = upper/(upper-lower)
         eps_params.append(-slope*lower/2)
         return slope*a_0-slope*lower/2, eps_params
+
+def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
+    print("last layer: " + str(layers[-1]))
+    reals = layers(inputs)
+    lowers, uppers = zono_layer.calc_bounds()
+    for i, item in enumerate(reals):
+        l = lowers[i]
+        u = uppers[i]
+        real = reals[0, i]
+        if not (l<real and u > real):
+            return False
+    return True

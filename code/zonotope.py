@@ -44,14 +44,16 @@ class Layer(object):
         self.zonotopes = zonotopes
     
     def __len__(self):
-        return len(self.zonotopes)
+        return sum([len(z.eps_params) for z in self.zonotopes])
 
     def perform_linear(self, weight, bias):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
-        params = torch.Tensor([sum(z.eps_params) for z in self.zonotopes])
+        params = torch.Tensor([z.eps_params for z in self.zonotopes])
         new_a_0 = F.linear(a_0, weight, bias)
-        new_params = F.linear(params, weight, bias)
-        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params)]
+        new_params = F.linear(params.transpose(0,1), weight)
+        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params[0])]
+        # after linear, the total length of layers should not change
+        new_layer = Layer(zonotopes)
         return Layer(zonotopes)
 
     def perform_relu(self):

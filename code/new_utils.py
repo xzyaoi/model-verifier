@@ -18,7 +18,7 @@ def get_network_real_input(network, image_matrix):
 def relu_relax_single_neuro(a_0, eps_params):
     lower = 0
     upper = 0
-    print(eps_params)
+    # print(eps_params)
     for each in eps_params:
         if (each > 0):
             lower = lower + each

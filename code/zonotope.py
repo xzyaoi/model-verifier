@@ -45,12 +45,14 @@ class Layer(object):
     def perform_linear(self, weight, bias):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
         # shape is dim * k(#eps)
-        # for i in self.zonotopes: print(i.eps_params)
-        params_map = torch.Tensor([z.eps_params for z in self.zonotopes])
+        original_params_map = torch.Tensor([z.eps_params[:-1] for z in self.zonotopes])
+        # the last index of the error param before each affine layer is the new error term
+        extra_params_map = torch.diag(torch.Tensor([z.eps_params[-1] for z in self.zonotopes]))
+        params_map = torch.cat([original_params_map, extra_params_map], 1)
         # params = torch.Tensor([sum(z.eps_params) for z in self.zonotopes])
         new_a_0 = F.linear(a_0, weight, bias)
-        new_params = F.linear(params_map.transpose(0,1), weight, bias)
-        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params[0])]
+        new_params = F.linear(weight, params_map)
+        zonotopes = [Zonotope(a_0, eps) for a_0, eps in zip(new_a_0, new_params)]
         return Layer(zonotopes)
 
     def perform_relu(self):

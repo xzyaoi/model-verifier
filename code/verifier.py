@@ -11,8 +11,7 @@ INPUT_SIZE = 28
 
 def analyze(net, inputs, eps, true_label):
     # print(true_label)
-    analyse_net(net, inputs, eps, true_label)
-    return 0
+    return analyse_net(net, inputs, eps, true_label)
 
 
 def main():

@@ -1,10 +1,34 @@
----input_zonotope---
----a0 shape: torch.Size([1, 100])---
----params shape: torch.Size([100, 784])---
----eps:0.06---
+784
+torch.Size([784, 784])
+torch.Size([100, 784])
+torch.Size([785])
+torch.Size([784])
+torch.Size([10, 884])
+884
+884
+884
+884
+884
+884
+884
+884
+884
+884
 not verified
----input_zonotope---
----a0 shape: torch.Size([1, 100])---
----params shape: torch.Size([100, 784])---
----eps:0.075---
+784
+torch.Size([784, 784])
+torch.Size([100, 784])
+torch.Size([785])
+torch.Size([784])
+torch.Size([10, 884])
+884
+884
+884
+884
+884
+884
+884
+884
+884
+884
 not verified

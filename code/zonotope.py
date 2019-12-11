@@ -24,13 +24,13 @@ class Zonotope(object):
         l, u = self.get_bound()
         if (u<=0):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
-            return 0, new_eps_param
+            return 0, new_eps_param.fill_(0.0)
         elif (l>=0):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
             return self.a_0, new_eps_param      
         else:
             slope = u/(u-l)
-            new_eps_param = torch.cat((self.eps_params, torch.Tensor([-slope*l/2])))
+            new_eps_param = torch.cat((self.eps_params * slope, torch.Tensor([-slope*l/2])))
             return slope*self.a_0-slope*l/2, new_eps_param
 
     def linear(self, weight, bias):

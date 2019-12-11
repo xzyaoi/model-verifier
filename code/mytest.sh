@@ -1,4 +1,4 @@
-for spec in `ls ../test_cases/fc4`
+for spec in `ls ../test_cases/fc1`
 do
-	python3 verifier.py --net fc4 --spec ../test_cases/fc4/${spec}
+	python3 verifier.py --net fc1 --spec ../test_cases/fc1/${spec}
 done

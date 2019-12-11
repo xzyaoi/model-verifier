@@ -24,7 +24,7 @@ def analyse_fc(net, inputs, eps, true_label):
     layers = net.layers[2:]
     real_final_output = layers[0:](inputs)
     _, first_fc_input_length  = inputs.shape
-    init_zonotopes = [Zonotope(a_0, [eps]) for a_0 in inputs[0]]
+    init_zonotopes = [Zonotope(a_0, torch.Tensor([eps])) for a_0 in inputs[0]]
     previous_layer = Layer(init_zonotopes)
     i=0
     while(i < len(layers)):

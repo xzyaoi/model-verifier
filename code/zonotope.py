@@ -20,15 +20,6 @@ class Zonotope(object):
         lower = positive * (-self.eps) + negative * (self.eps)
         return self.a_0 + sum(lower), self.a_0 + sum(upper)
 
-    def relax(self, method):
-        if method == "relu":
-            lower, upper = self.get_bound()
-            new_a0, new_eps_params, new_eps = relu_relaxation(
-                self.a_0, lower, upper
-            )
-        else:
-            print("method not supported!")
-
     def linear(self, weight, bias):
         a_0 = F.linear(self.a_0, weight, bias)
         params = F.linear(self.eps_params, weight, bias)
@@ -46,18 +37,14 @@ class Layer(object):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
         # shape is dim * k(#eps)
         if after_relu:
-            print(self.zonotopes[0].eps_params[:-1].shape)
             original_params_map = torch.Tensor([z.eps_params[:-1].detach().numpy() for z in self.zonotopes])
             extra_params_map = torch.diag(torch.Tensor([z.eps_params[-1] for z in self.zonotopes]))
             # the last index of the error param before each affine layer is the new error term
             params_map = torch.cat([original_params_map, extra_params_map], 1)
         else:
-            print(len([z.eps_params for z in self.zonotopes]))
             params_map = torch.diag(torch.flatten(torch.stack([torch.Tensor(z.eps_params) for z in self.zonotopes])))
-            print(params_map.shape)
         new_a_0 = F.linear(a_0, weight, bias)
         new_params = F.linear(weight, torch.transpose(params_map, 0, 1))
-        print(new_params.shape)
         zonotopes = [Zonotope(a_0, eps) for a_0, eps in zip(new_a_0, new_params)]
         return Layer(zonotopes)
 
@@ -65,7 +52,6 @@ class Layer(object):
         for index, item in enumerate(self.zonotopes):
             b_0, new_eps_params = relu_relax_single_neuro(item.a_0, item.eps_params)
             self.zonotopes[index] = Zonotope(b_0, new_eps_params)
-        print(self.zonotopes[0].eps_params.shape)
         return Layer(self.zonotopes)
 
     def calc_bounds(self):

@@ -46,9 +46,9 @@ def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
         u = uppers[i]
         real = reals[0, i]
         if not (l<real and u > real):
-            print("[err] last layer: " + str(layers[-1])+ "cannot pass boundary check!")
+            print("[err] layer: " + str(layers[-1])+ "cannot pass boundary check!")
             return False
-    print("[info] last layer: " + str(layers[-1])+ "passed boundary check!")
+    print("[info] layer: " + str(layers[-1])+ "passed boundary check!")
     return True
 
 def isVerified(lower, upper, real_label):

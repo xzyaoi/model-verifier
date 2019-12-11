@@ -13,16 +13,12 @@ class Zonotope(object):
         self.eps = 1
 
     def get_bound(self):
-        lower = 0
-        upper = 0
-        for each in self.eps_params:
-            if each <=0:
-                lower = lower + each
-                upper = upper - each
-            else:
-                lower = lower - each
-                upper = upper + each
-        return self.a_0 + lower, self.a_0 + upper
+        self.eps_params = torch.Tensor(self.eps_params)
+        positive = F.relu(self.eps_params)
+        negative = -F.relu(-self.eps_params)
+        upper = positive * self.eps + negative * (-self.eps)
+        lower = positive * (-self.eps) + negative * (self.eps)
+        return self.a_0 + sum(lower), self.a_0 + sum(upper)
 
     def relax(self, method):
         if method == "relu":
@@ -46,20 +42,30 @@ class Layer(object):
     def __len__(self):
         return sum([len(z.eps_params) for z in self.zonotopes])
 
-    def perform_linear(self, weight, bias):
+    def perform_linear(self, weight, bias, after_relu=False):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
-        params = torch.Tensor([z.eps_params for z in self.zonotopes])
+        # shape is dim * k(#eps)
+        if after_relu:
+            print(self.zonotopes[0].eps_params[:-1].shape)
+            original_params_map = torch.Tensor([z.eps_params[:-1].detach().numpy() for z in self.zonotopes])
+            extra_params_map = torch.diag(torch.Tensor([z.eps_params[-1] for z in self.zonotopes]))
+            # the last index of the error param before each affine layer is the new error term
+            params_map = torch.cat([original_params_map, extra_params_map], 1)
+        else:
+            print(len([z.eps_params for z in self.zonotopes]))
+            params_map = torch.diag(torch.flatten(torch.stack([torch.Tensor(z.eps_params) for z in self.zonotopes])))
+            print(params_map.shape)
         new_a_0 = F.linear(a_0, weight, bias)
-        new_params = F.linear(params.transpose(0,1), weight)
-        zonotopes = [Zonotope(a_0, [eps]) for a_0, eps in zip(new_a_0, new_params[0])]
-        # after linear, the total length of layers should not change
-        new_layer = Layer(zonotopes)
+        new_params = F.linear(weight, torch.transpose(params_map, 0, 1))
+        print(new_params.shape)
+        zonotopes = [Zonotope(a_0, eps) for a_0, eps in zip(new_a_0, new_params)]
         return Layer(zonotopes)
 
     def perform_relu(self):
         for index, item in enumerate(self.zonotopes):
             b_0, new_eps_params = relu_relax_single_neuro(item.a_0, item.eps_params)
             self.zonotopes[index] = Zonotope(b_0, new_eps_params)
+        print(self.zonotopes[0].eps_params.shape)
         return Layer(self.zonotopes)
 
     def calc_bounds(self):

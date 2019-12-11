@@ -30,7 +30,7 @@ def analyse_fc(net, inputs, eps, true_label):
     while(i < len(layers)):
         # fc
         fc_layer = previous_layer
-        fc_out = fc_layer.perform_linear(layers[i].weight, layers[i].bias)
+        fc_out = fc_layer.perform_linear(layers[i].weight, layers[i].bias, i != 0)
         i = i+1
         # isLayerOutputCoveredbyBound(fc_out, layers[:i], inputs)
         previous_layer = fc_out
@@ -43,9 +43,9 @@ def analyse_fc(net, inputs, eps, true_label):
     # now previous_layer becomes final output
     out = previous_layer
     lower, upper = out.calc_bounds()
-    # print(lower)
-    # print(real_final_output)
-    # print(upper)
+    print([float(i.numpy()) for i in lower])
+    print(list(real_final_output[0].detach().numpy()))
+    print([float(i.numpy()) for i in upper])
     return isVerified(lower, upper, true_label)
 
 def analyse_conv(net, inputs, eps):

@@ -28,15 +28,15 @@ def relu_relax_single_neuro(a_0, eps_params):
     l = a_0 + lower
     u = a_0 + upper
     if (u <= 0):
-        eps_params.append(0)
-        return 0, eps_params
+        new_eps_param = torch.cat((eps_params, torch.Tensor([0])))
+        return 0, new_eps_param
     elif (l >= 0):
-        eps_params.append(0)
-        return a_0, eps_params
+        new_eps_param = torch.cat((eps_params, torch.Tensor([0])))
+        return a_0, new_eps_param
     else:
         slope = upper/(upper-lower)
-        eps_params.append(-slope*lower/2)
-        return slope*a_0-slope*lower/2, eps_params
+        new_eps_param = torch.cat((eps_params, torch.Tensor([-slope*lower/2])))
+        return slope*a_0-slope*lower/2, new_eps_param
 
 def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
     reals = layers(inputs)
@@ -54,8 +54,12 @@ def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
 def isVerified(lower, upper, real_label):
     true_lower = lower[real_label]
     true_upper = upper[real_label]
+    print(true_upper)
     upper.remove(true_upper)
+    print(true_lower)
+    print(upper)
     false_upper = max(upper)
+    print(false_upper)
     if (true_lower > false_upper):
         return True
     else:

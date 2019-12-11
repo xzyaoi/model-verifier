@@ -3,14 +3,13 @@ import torch
 from networks import FullyConnected, Conv
 
 # from analyser import analyse_fc
-from new_analyser import analyse_net
+from analyser import analyse_net
 
 DEVICE = 'cpu'
 INPUT_SIZE = 28
 
 
 def analyze(net, inputs, eps, true_label):
-    # print(true_label)
     return analyse_net(net, inputs, eps, true_label)
 
 

@@ -22,6 +22,19 @@ class Zonotope(object):
         upper = positive * self.eps + negative * (-self.eps)
         lower = positive * (-self.eps) + negative * (self.eps)
         return self.a_0 + sum(lower), self.a_0 + sum(upper)
+    
+    def relu(self):
+        l, u = self.get_bound()
+        if (u<=0):
+            new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
+            return 0, new_eps_param
+        elif (l>=0):
+            new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
+            return self.a_0, new_eps_param      
+        else:
+            slope = u/(u-l)
+            new_eps_param = torch.cat((self.eps_params, torch.Tensor([-slope*l/2])))
+            return slope*self.a_0-slope*l/2, new_eps_param
 
     def linear(self, weight, bias):
         a_0 = F.linear(self.a_0, weight, bias)
@@ -59,8 +72,7 @@ class Layer(object):
         previous_len = len(self)
         num_zonotopes = len(self.zonotopes)
         for index, item in enumerate(self.zonotopes):
-            b_0, new_eps_params = relu_relax_single_neuro(
-                item.a_0, item.eps_params)
+            b_0, new_eps_params = item.relu()
             self.zonotopes[index] = Zonotope(b_0, new_eps_params)
         new_layer = Layer(self.zonotopes)
         # calc expected length

@@ -32,13 +32,13 @@ def analyse_fc(net, inputs, eps, true_label):
         fc_layer = previous_layer
         fc_out = fc_layer.perform_linear(layers[i].weight, layers[i].bias, i != 0)
         i = i+1
-        isLayerOutputCoveredbyBound(fc_out, layers[:i], inputs)
+        # isLayerOutputCoveredbyBound(fc_out, layers[:i], inputs)
         previous_layer = fc_out
         # relu
         if(i<len(layers)):
             relu_out = previous_layer.perform_relu()
             i = i+1
-            isLayerOutputCoveredbyBound(relu_out, layers[:i], inputs)
+            # isLayerOutputCoveredbyBound(relu_out, layers[:i], inputs)
             previous_layer = relu_out
     # now previous_layer becomes final output
     out = previous_layer

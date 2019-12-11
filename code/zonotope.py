@@ -4,9 +4,6 @@ import torch.nn.functional as F
 
 from logger import logger
 
-from utils import relu_relax_single_neuro
-
-
 class Zonotope(object):
 
     def __init__(self, a_0, eps_params, name="null"):

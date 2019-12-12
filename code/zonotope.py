@@ -27,7 +27,7 @@ class Zonotope(object):
             return 0, new_eps_param.fill_(0.0)
         elif (l>=0):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
-            return self.a_0, new_eps_param      
+            return self.a_0, new_eps_param
         else:
             slope = u/(u-l)
             new_eps_param = torch.cat((self.eps_params * slope, torch.Tensor([-slope*l/2])))
@@ -52,10 +52,13 @@ class Layer(object):
         if after_relu:
             original_params_map = torch.Tensor(
                 [z.eps_params[:-1].detach().numpy() for z in self.zonotopes])
+            print(original_params_map)
             extra_params_map = torch.diag(torch.Tensor(
                 [z.eps_params[-1] for z in self.zonotopes]))
             # the last index of the error param before each affine layer is the new error term
+            print(extra_params_map)
             params_map = torch.cat([original_params_map, extra_params_map], 1)
+            print(params_map)
         else:
             params_map = torch.diag(torch.flatten(torch.stack(
                 [torch.Tensor(z.eps_params) for z in self.zonotopes])))

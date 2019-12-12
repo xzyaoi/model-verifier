@@ -1,13 +1,15 @@
 import unittest
 from unittest import TestCase
-from zonotope import Zonotope
+from zonotope import Zonotope, Layer
 import torch
 
 class TestZonotope(TestCase):
 
     def test_bound(self):
         testtope = Zonotope(1, torch.Tensor([0.1, 0.1, 0.1, -0.1, -0.1, -0.1]))
-        self.assertEqual(testtope.get_bound(), (0.4, 1.6))
+        lower, upper = testtope.get_bound()
+        self.assertEqual(lower,torch.as_tensor(0.4))
+        self.assertEqual(upper,torch.as_tensor(1.6))
 
     def test_relu(self):
         testtope = Zonotope(1, torch.Tensor([0.1, 0.1, 0.1, -0.1, -0.1, -0.1]))

@@ -9,6 +9,7 @@ from zonotope import Zonotope, Layer
 DEVICE = 'cpu'
 
 def analyse_net(net, inputs, eps, true_label):
+    print("Epsilon: %f" % eps)
     print("True Label: %d" % true_label)
     real_network_input = get_network_real_input(net, inputs)
     if isinstance(net, FullyConnected):

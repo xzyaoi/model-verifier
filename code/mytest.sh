@@ -1,6 +1,6 @@
 #!/bin/bash
 
-net=conv1
+net=fc1
 echo Evaluating network ${net}...
 for spec in `ls ../test_cases/${net}`
 do

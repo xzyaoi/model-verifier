@@ -30,7 +30,7 @@ class Zonotope(object):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
             return self.a_0, new_eps_param
         else:
-            slope = u/(u-l)
+            slope = u/(u-l)-0.5
             new_eps_param = torch.cat(
                 (self.eps_params * slope, torch.Tensor([-slope*l/2])))
             return slope*self.a_0-slope*l/2, new_eps_param

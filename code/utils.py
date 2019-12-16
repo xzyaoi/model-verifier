@@ -5,12 +5,16 @@ import torch.nn.functional as F
 from networks import FullyConnected
 from logger import logger
 
-def get_network_real_input(network, image_matrix):
+def get_network_real_input(network, image_matrix, eps):
+    x = image_matrix + eps
+    y = image_matrix - eps
+    new_image_input = 1/2 * (x + y)
+    new_eps = 1/2* (x+y) -y
     if isinstance(network, FullyConnected):
         preprocess_layers = network.layers[:2]
     else:
         preprocess_layers = network.layers[:1]
-    return preprocess_layers(image_matrix)
+    return new_eps[0][0][0][0], preprocess_layers(image_matrix)
 
 def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
     reals = layers(inputs)

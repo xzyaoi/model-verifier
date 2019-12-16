@@ -1,11 +1,11 @@
 net,test case,ground truth,your output,your runtime,your point
-fc1,img0_0.05872.txt,not verified,not verified,0.65,0
+x fc1,img0_0.05872.txt,not verified,not verified,0.65,0
 fc1,anonymous,verified,not verified,0.597,0
-fc2,img0_0.05697.txt,not verified,not verified,0.643,0
+x fc2,img0_0.05697.txt,not verified,not verified,0.643,0
 fc2,anonymous,verified,not verified,0.662,0
-fc3,img0_0.01305.txt,not verified,not verified,0.629,0
+x fc3,img0_0.01305.txt,not verified,not verified,0.629,0
 fc3,anonymous,verified,not verified,0.613,0
-fc4,img1_0.13746.txt,verified,not verified,0.806,0
+x fc4,img1_0.13746.txt,verified,not verified,0.806,0
 fc4,anonymous,verified,not verified,0.835,0
 fc5,img3_0.05609.txt,verified,not verified,0.976,0
 fc5,anonymous,not verified,not verified,1.079,0

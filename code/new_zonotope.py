@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from logger import logger
 
+
 class Zonotope(object):
 
     def __init__(self, a_0, eps_params, name="null"):
@@ -22,15 +23,16 @@ class Zonotope(object):
 
     def relu(self):
         l, u = self.get_bound()
-        if (u<=0):
+        if (u <= 0):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
             return 0, new_eps_param.fill_(0.0)
-        elif (l>=0):
+        elif (l >= 0):
             new_eps_param = torch.cat((self.eps_params, torch.Tensor([0])))
             return self.a_0, new_eps_param
         else:
             slope = u/(u-l)
-            new_eps_param = torch.cat((self.eps_params * slope, torch.Tensor([-slope*l/2])))
+            new_eps_param = torch.cat(
+                (self.eps_params * slope, torch.Tensor([-slope*l/2])))
             return slope*self.a_0-slope*l/2, new_eps_param
 
     def linear(self, weight, bias):
@@ -46,7 +48,40 @@ class Layer(object):
     def __len__(self):
         return sum([len(z.eps_params) for z in self.zonotopes])
 
-    def perform_linear(self, weight, bias, after_relu=False):
+    def calc_bounds(self):
+        lowers = []
+        uppers = []
+        for each in self.zonotopes:
+            lower, upper = each.get_bound()
+            lowers.append(lower.data)
+            uppers.append(upper.data)
+        return lowers, uppers
+        
+    def toFC(self):
+        return ZonoFullyConnected(self.zonotopes)
+
+    def toConv2D(self):
+        return ZonoConv2D(self.zonotopes)
+
+    def activate_relu(self):
+        previous_len = len(self)
+        num_zonotopes = len(self.zonotopes)
+        for index, item in enumerate(self.zonotopes):
+            b_0, new_eps_params = item.relu()
+            self.zonotopes[index] = Zonotope(b_0, new_eps_params)
+        new_layer = Layer(self.zonotopes)
+        # calc expected length
+        expected_length = previous_len + num_zonotopes
+        assert len(new_layer) == expected_length, "Size Mismatch, expected: %d != get:%d" % (
+            expected_length, len(new_layer))
+        return new_layer
+
+
+class ZonoFullyConnected(Layer):
+    def __init__(self, zonotopes):
+        super().__init__(zonotopes)
+
+    def forward(self, weight, bias, after_relu=False):
         a_0 = torch.Tensor([z.a_0 for z in self.zonotopes])
         # shape is dim * k(#eps)
         if after_relu:
@@ -65,23 +100,10 @@ class Layer(object):
                      for a_0, eps in zip(new_a_0, new_params)]
         return Layer(zonotopes)
 
-    def perform_relu(self):
-        previous_len = len(self)
-        num_zonotopes = len(self.zonotopes)
-        for index, item in enumerate(self.zonotopes):
-            b_0, new_eps_params = item.relu()
-            self.zonotopes[index] = Zonotope(b_0, new_eps_params)
-        new_layer = Layer(self.zonotopes)
-        # calc expected length
-        expected_length = previous_len + num_zonotopes
-        assert len(new_layer) == expected_length, "Size Mismatch, expected: %d != get:%d" % (expected_length, len(new_layer))
-        return new_layer
 
-    def calc_bounds(self):
-        lowers = []
-        uppers = []
-        for each in self.zonotopes:
-            lower, upper = each.get_bound()
-            lowers.append(lower.data)
-            uppers.append(upper.data)
-        return lowers, uppers
+class ZonoConv2D(Layer):
+    def __init__(self, zonotopes):
+        super().__init__(zonotopes)
+    
+    def forward(self, weight):
+        print(weight.shape)

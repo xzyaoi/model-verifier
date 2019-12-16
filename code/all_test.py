@@ -1,11 +1,13 @@
 from zonotope import Layer, Zonotope
 import torch
+
 def test_linear():
-    z1 = Zonotope(2, [0.6])
-    z2 = Zonotope(1, [0.5])
+    z1 = Zonotope(1, [0.6])
+    z2 = Zonotope(-1, [0.5])
     layer = Layer([z1,z2])
     weight = torch.Tensor([[1,-1], [-1,1]])
-    output = layer.perform_linear(weight=weight, bias=None)
+    bias = torch.Tensor([0.01,0.001])
+    output = layer.perform_linear(weight=weight, bias=bias)
     print([z.a_0 for z in output.zonotopes])
     print([z.eps_params for z in output.zonotopes])
     output = output.perform_relu()

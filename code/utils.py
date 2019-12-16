@@ -14,7 +14,7 @@ def get_network_real_input(network, image_matrix, eps):
         preprocess_layers = network.layers[:2]
     else:
         preprocess_layers = network.layers[:1]
-    return new_eps[0][0][0][0], preprocess_layers(image_matrix)
+    return new_eps, preprocess_layers(image_matrix)
 
 def isLayerOutputCoveredbyBound(zono_layer, layers, inputs):
     reals = layers(inputs)

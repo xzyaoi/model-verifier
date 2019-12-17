@@ -1,5 +1,5 @@
 net,test case,ground truth,your output,your runtime,your point
-x fc1,img0_0.05872.txt,not verified,not verified,0.65,0
+fc1,img0_0.05872.txt,not verified,not verified,0.65,0
 fc1,anonymous,verified,not verified,0.597,0
 x fc2,img0_0.05697.txt,not verified,not verified,0.643,0
 fc2,anonymous,verified,not verified,0.662,0

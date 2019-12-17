@@ -1,9 +1,11 @@
 import torch
 import numpy as np
 import torch.nn.functional as F
-from networks import FullyConnected
+from networks import FullyConnected, Normalization
 import torch.nn as nn
 
+sigma = torch.FloatTensor([0.3081]).view((1, 1, 1, 1))
+mean = torch.FloatTensor([0.1307]).view((1, 1, 1, 1))
 
 def get_network_real_input(network, image_matrix, eps):
     x = image_matrix + eps
@@ -11,12 +13,13 @@ def get_network_real_input(network, image_matrix, eps):
     y = F.relu(image_matrix - eps)
     new_image_input = 1/2 * (x + y)
     new_eps = 1/2 * (x+y) - y
-    print("New Epsilon: %f" % new_eps[0][0][0][0])
+    # print("New Epsilon: %f" % new_eps[0][0][0][0])
     if isinstance(network, FullyConnected):
         preprocess_layers = network.layers[:2]
     else:
-        preprocess_layers = network.layers[:1]
-    return new_eps, preprocess_layers(x)
+        preprocess_layers = network.layers[:1] 
+    # return new_eps, preprocess_layers(new_image_input)
+    return new_eps, preprocess_layers(new_image_input)
 
 
 def get_bounds(a_0, eps_params):
@@ -33,20 +36,22 @@ def relu_relax(a_0, eps_params):
     length, width = eps_params.shape
     new_eps_params = torch.Tensor(length+1, width)
     for index, item in enumerate(a_0[0]):
-        l = lower[0][index]
-        u = upper[0][index]
+        l = lower[0, index]
+        u = upper[0, index]
         if (u <= 0):
             a_0[0, index] = 0
             new_eps_params[:, index].fill_(0.0)
-            new_eps_param = torch.Tensor([0])
+            new_eps_param = torch.Tensor([0.0])
             slope = 1
         elif (l >= 0):
-            new_eps_param = torch.Tensor([0])
+            new_eps_param = torch.Tensor([0.0])
             slope = 1
         else:
-            # cross boundary
-            # slope = u/(u-l)
-            slope=1
+            # a_0[0, index] = u / 2
+            # new_eps_params[:, index].fill_(0.0)
+            # new_eps_param = torch.Tensor([u/2])
+            # # cross boundary
+            slope = u/(u-l)
             a_0[0, index] = slope * a_0[0, index] - slope * l / 2
             new_eps_param = torch.Tensor([-slope*l/2])
         
@@ -70,8 +75,7 @@ def verify_fc(net, a_0, eps_params, true_label):
             i = i + 1
     # output
     l, u = get_bounds(a_0, eps_params)
-    print(l)
-    print(u)
+    return l, u
 
 
 def verify_cnn(net, a_0, eps_params, true_label):
@@ -89,8 +93,17 @@ def verify_cnn(net, a_0, eps_params, true_label):
 
 def verify(net, inputs, eps, true_label):
     eps_params, a_0 = get_network_real_input(net, inputs, eps)
+    eps_params = eps_params / sigma
     eps_params = eps_params.flatten()
     if isinstance(net, FullyConnected):
-        return verify_fc(net, a_0, eps_params, true_label)
+        l, u = verify_fc(net, a_0, eps_params, true_label)
+        print(l)
+        print(u)
+        return determine(l.tolist()[0], u.tolist()[0])
     else:
         return verify_cnn(net, a_0, eps_params, true_label)
+
+
+def determine(l, u):
+    u.remove(max(u))
+    return max(l) >= max(u)

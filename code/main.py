@@ -6,11 +6,19 @@ import torch.nn as nn
 
 
 def get_network_real_input(network, image_matrix, eps):
+    """
     x = image_matrix + eps
     x = x - F.relu(x - 1)
     y = F.relu(image_matrix - eps)
     new_image_input = 1/2 * (x + y)
     new_eps = 1/2 * (x+y) - y
+    """
+
+    x = image_matrix + eps
+    x[x>1] = 1 - eps
+    new_image_input = x
+    new_eps = torch.Tensor(1,1,28,28)
+    new_eps.fill_(eps)
     print("New Epsilon: %f" % new_eps[0][0][0][0])
     if isinstance(network, FullyConnected):
         preprocess_layers = network.layers[:2]
@@ -32,7 +40,6 @@ def relu_relax(a_0, eps_params):
     lower, upper = get_bounds(a_0, eps_params)
     length, width = eps_params.shape
     new_eps_params = torch.Tensor(length+1, width)
-
     for index, item in enumerate(a_0[0]):
         l = lower[0][index]
         u = lower[0][index]
@@ -58,9 +65,9 @@ def verify_fc(net, a_0, eps_params, true_label):
     layers = net.layers[2:]
     i = 0
     while(i < len(layers)):
-        # fc
         a_0 = layers[i](a_0)
-        eps_params = eps_params.diag()
+        if i==0:
+            eps_params = eps_params.diag()
         eps_params = F.linear(eps_params, layers[i].weight)
         i = i + 1
         # relu
@@ -74,10 +81,15 @@ def verify_fc(net, a_0, eps_params, true_label):
 
 
 def verify_cnn(net, a_0, eps_params, true_label):
+    print(a_0.shape)
     layers = net.layers[1:]
     i = 0
     while(i<len(layers)):
+        print(layers[i])
         a_0 = layers[i](a_0)
+
+        eps_params = layers[i](a_0)
+        i = i + 1
 
 
 def verify(net, inputs, eps, true_label):

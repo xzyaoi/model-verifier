@@ -19,6 +19,8 @@ def test_linear():
     output = output.perform_linear(weight=new_weight, bias=None, after_relu=True)
     print([z.a_0 for z in output.zonotopes])
     print([z.eps_params for z in output.zonotopes])
+    
+
 
 if __name__ == "__main__":
     test_linear()

@@ -1,7 +1,7 @@
 import argparse
 import torch
 from networks import FullyConnected, Conv
-from bug import *
+from main import *
 # from analyser import analyse_fc
 from analyser import analyse_net
 

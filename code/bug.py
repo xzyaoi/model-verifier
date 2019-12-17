@@ -51,16 +51,23 @@ def relu_tranform(values, eps):
     upper, lower = get_bound(values, eps)
     # 1 * nodes
     eps = torch.cat((eps, torch.zeros(len(values), 1)), dim=1)
-    for idx, value in enumerate(values):
-        if upper[idx] <= 0:
+    for idx, _ in enumerate(values):
+        u, l = upper[idx], lower[idx]
+        if u <= 0:
             values[idx]=0
             eps[idx].fill_(0)
-        elif lower[idx] >= 0:
+        elif l >= 0:
             pass
         else:
-            slope=upper[idx]/(upper[idx]-lower[idx])
-            values[idx]=slope * values[idx] - slope*lower[idx] / 2
-            eps[idx]=torch.cat((slope * eps[idx][:-1], torch.Tensor([-slope*lower[idx]/2])))
+            base = u / (u - l)
+            # slope = np.random.uniform(0, 1)
+            slope = 0.01
+            if slope <= base:
+                term = (1 - slope) * u / 2
+            else:
+                term = -l * slope / 2
+            values[idx] = slope * values[idx] + term
+            eps[idx] = torch.cat((slope * eps[idx][:-1], torch.Tensor([term])))
     return values, eps
 
 def get_bound(values, eps):

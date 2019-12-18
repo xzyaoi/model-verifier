@@ -13,7 +13,7 @@ def analyze(net, inputs, eps, true_label):
     print("Epsilon: %f" % eps)
     print("real output")
     # print(net.layers(inputs))
-    return verify(net, inputs, eps)
+    return verify(net, inputs, eps, true_label)
 
 
 def main():

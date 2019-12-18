@@ -25,54 +25,52 @@ def verify(net, inputs, eps, label):
     diff = F.relu(upper - 1)
     upper = upper - diff
     lower = F.relu(lower)
-    init_values = (upper + lower).detach()
-    eps = (init_values - lower).detach()
+    init_values = (upper + lower)
+    eps = (init_values - lower)
     eps = eps.flatten().diag()
     init_eps = eps.view(list(init_values.shape) + [len(eps)])
     slopes = []
     is_init = True
     # go through network
     times = 10
-    for i in range(times):        
+    for i in range(times):
         relu_count = 0
         values = init_values.clone()
         eps = init_eps.clone()
-        with torch.no_grad():
-            for layer in net.layers:
-                if type(layer) is torch.nn.modules.linear.Linear:
+        for layer in net.layers:
+            if type(layer) is torch.nn.modules.linear.Linear:
+                with torch.no_grad():
                     values, eps = affine_transform(values, eps, layer)
-                elif type(layer) is torch.nn.modules.activation.ReLU:
-                    values, eps = relu_tranform(
-                        values, eps, relu_count, slopes, is_init)
-                    relu_count += 1
-                elif type(layer) is torch.nn.modules.Conv2d:
-                    values, eps = cnn_transform(values, eps, layer)
-                elif type(layer) is torch.nn.modules.flatten.Flatten:
-                    # values = values.view(1,1, np.prod(values.shape),1)
-                    # eps = eps.view(1,1,np.prod(values.shape)).diag()
-                    values = values.flatten()  # 1 * nodes
+            elif type(layer) is torch.nn.modules.activation.ReLU:
+                values, eps = relu_tranform(
+                    values, eps, relu_count, slopes, is_init)
+                relu_count += 1
+            elif type(layer) is torch.nn.modules.Conv2d:
+                values, eps = cnn_transform(values, eps, layer)
+            elif type(layer) is torch.nn.modules.flatten.Flatten:
+                # values = values.view(1,1, np.prod(values.shape),1)
+                # eps = eps.view(1,1,np.prod(values.shape)).diag()
+                values = values.flatten()  # 1 * nodes
                     # node_num * ep_num
-                    eps = eps.view(np.prod(values.shape), eps.shape[-1])
-                else:
-                    # normalizaton
-                    mean = torch.FloatTensor([0.1307]).view((1, 1, 1, 1))
-                    sigma = torch.FloatTensor([0.3081]).view((1, 1, 1, 1))
-                    values = (values - mean) / sigma
-                    eps = eps / sigma
+                eps = eps.view(np.prod(values.shape), eps.shape[-1])
+            else:
+                # normalizaton
+                mean = torch.FloatTensor([0.1307]).view((1, 1, 1, 1))
+                sigma = torch.FloatTensor([0.3081]).view((1, 1, 1, 1))
+                values = (values - mean) / sigma
+                eps = eps / sigma
         is_init = False
         param_groups = []
         for each in slopes:
             param_groups.append({
-                'params': each
+                'params': each,
             })
         upper, lower = get_bound(values, eps)
-        optimizer = torch.optim.SGD(param_groups, lr=0.2,
-                                    momentum=0.95,
-                                    weight_decay=0.05,
-                                    nesterov=True)
-
+        optimizer = torch.optim.SGD(param_groups, lr=0.2)
+        # loss_func = nn.L1Loss()
         slopeloss = SlopeLoss()
         loss = slopeloss(upper, lower, label)
+        optimizer.zero_grad()
         loss.backward()
         upper, lower = upper.tolist(), lower.tolist()
         upper.remove(upper[label])
@@ -86,7 +84,7 @@ def verify(net, inputs, eps, label):
 def affine_transform(values, eps, layer):
     # value: 1 * nodes
     # process values
-    values = layer(values)  # 1 * new_nodes
+    values = F.linear(values, layer.weight, layer.bias)  # 1 * new_nodes
     # ep_num * nodes, weight: new_nodes * nodes
     eps = torch.matmul(layer.weight, eps)  # new_nodes, ep_num
     return values, eps
@@ -102,7 +100,9 @@ def relu_tranform(values, eps, relu_count, slopes, is_init):
     eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
     upper, lower = get_bound(values_flat, eps_flat)
     if is_init:
-        slopes.append(upper / (upper - lower))
+        current_slopes = torch.Tensor(upper/(upper-lower))
+        print(current_slopes.shape)
+        slopes.append(current_slopes)
     current_slopes = slopes[relu_count]
     for idx, _ in enumerate(values_flat):
         u, l = upper[idx], lower[idx]

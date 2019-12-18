@@ -1,9 +1,8 @@
 import argparse
 import torch
 from networks import FullyConnected, Conv
-from main import *
+from bug import verify
 # from analyser import analyse_fc
-from analyser import analyse_net
 
 DEVICE = 'cpu'
 INPUT_SIZE = 28

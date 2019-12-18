@@ -6,7 +6,7 @@ from networks import Normalization, FullyConnected, Conv
 from utils import isLayerOutputCoveredbyBound, isVerified
 # from zonotope import Zonotope, Layer
 from new_zonotope import ZonoFullyConnected, Zonotope, Layer
-from main import get_network_real_input
+# from main import get_network_real_input
 DEVICE = 'cpu'
 
 def analyse_net(net, inputs, eps, true_label):

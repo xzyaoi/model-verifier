@@ -12,6 +12,7 @@ def verify(net, inputs, eps):
     lower = F.relu(lower)
     values = (upper + lower)
     eps = (values - lower)
+    eps = eps.view(list(values.shape) + [1])
     # go through network
     for layer in net.layers:
         if type(layer) is torch.nn.modules.linear.Linear:
@@ -19,10 +20,13 @@ def verify(net, inputs, eps):
         elif type(layer) is torch.nn.modules.activation.ReLU:
             values, eps = relu_tranform(values, eps)
         elif type(layer) is torch.nn.modules.Conv2d:
-            pass
+            values, eps = cnn_transform(values, eps)
         elif type(layer) is torch.nn.modules.flatten.Flatten:
-            values = values.flatten()  # 1 * nodes
-            eps = eps.flatten().diag()  # 1 * ep_num
+            # values = values.view(1,1, np.prod(values.shape),1)
+            # eps = eps.view(1,1,np.prod(values.shape)).diag()  
+            values = values.flatten()# 1 * nodes
+            eps = eps.view(np.prod(values.shape), eps.shape[-1])# node_num * ep_num
+            eps = eps.diag()
         else:
             # normalizaton
             mean = torch.FloatTensor([0.1307]).view((1, 1, 1, 1))
@@ -75,3 +79,9 @@ def get_bound(values, eps):
     upper = values + abs_eps
     lower = values - abs_eps
     return upper, lower
+
+def cnn_transform(values, eps, layer):
+    values = layer(values)
+    ep_shape = eps.shape
+    eps = torch.nn.functional.conv3d(values.view(eps, layer.weight.view(list(layer.weight.shape) + [1])))
+    return values, eps

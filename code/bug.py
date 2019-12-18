@@ -12,7 +12,8 @@ def verify(net, inputs, eps):
     lower = F.relu(lower)
     values = (upper + lower)
     eps = (values - lower)
-    eps = eps.view(list(values.shape) + [1])
+    eps = eps.flatten().diag()
+    eps = eps.view(list(values.shape) + [len(eps)])
     # go through network
     for layer in net.layers:
         if type(layer) is torch.nn.modules.linear.Linear:
@@ -20,13 +21,12 @@ def verify(net, inputs, eps):
         elif type(layer) is torch.nn.modules.activation.ReLU:
             values, eps = relu_tranform(values, eps)
         elif type(layer) is torch.nn.modules.Conv2d:
-            values, eps = cnn_transform(values, eps)
+            values, eps = cnn_transform(values, eps, layer)
         elif type(layer) is torch.nn.modules.flatten.Flatten:
             # values = values.view(1,1, np.prod(values.shape),1)
             # eps = eps.view(1,1,np.prod(values.shape)).diag()  
             values = values.flatten()# 1 * nodes
             eps = eps.view(np.prod(values.shape), eps.shape[-1])# node_num * ep_num
-            eps = eps.diag()
         else:
             # normalizaton
             mean = torch.FloatTensor([0.1307]).view((1, 1, 1, 1))
@@ -52,14 +52,17 @@ def affine_transform(values, eps, layer):
 
 def relu_tranform(values, eps):
     # eps: nodes * ep_num, values: 1 * nodes
-    upper, lower = get_bound(values, eps)
+    values_flat = values.flatten()
+    # eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
     # 1 * nodes
-    eps = torch.cat((eps, torch.zeros(len(values), 1)), dim=1)
-    for idx, _ in enumerate(values):
+    eps = torch.cat((eps, torch.zeros(np.prod(values.shape), 1).view(list(eps.shape)[:-1] + [1])), dim=-1)
+    eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
+    upper, lower = get_bound(values_flat, eps_flat)
+    for idx, _ in enumerate(values_flat):
         u, l = upper[idx], lower[idx]
         if u <= 0:
-            values[idx]=0
-            eps[idx].fill_(0)
+            values_flat[idx]=0
+            eps_flat[idx].fill_(0)
         elif l >= 0:
             pass
         else:
@@ -70,9 +73,9 @@ def relu_tranform(values, eps):
                 term = (1 - slope) * u / 2
             else:
                 term = -l * slope / 2
-            values[idx] = slope * values[idx] + term
-            eps[idx] = torch.cat((slope * eps[idx][:-1], torch.Tensor([term])))
-    return values, eps
+            values_flat[idx] = slope * values_flat[idx] + term
+            eps_flat[idx] = torch.cat((slope * eps_flat[idx][:-1], torch.Tensor([term])))
+    return values_flat.view(values.shape), eps_flat.view(eps.shape)
 
 def get_bound(values, eps):
     abs_eps = torch.sum(torch.abs(eps), dim=-1)
@@ -83,5 +86,7 @@ def get_bound(values, eps):
 def cnn_transform(values, eps, layer):
     values = layer(values)
     ep_shape = eps.shape
-    eps = torch.nn.functional.conv3d(values.view(eps, layer.weight.view(list(layer.weight.shape) + [1])))
+    eps = torch.nn.functional.conv3d(eps, layer.weight.view(list(layer.weight.shape) + [1]),
+                                     stride = list(layer.stride) + [1],
+                                     padding = list(layer.padding) + [0])
     return values, eps

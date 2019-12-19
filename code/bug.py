@@ -84,9 +84,9 @@ def verify(net, inputs, eps, label):
 def affine_transform(values, eps, layer):
     # value: 1 * nodes
     # process values
-    values = F.linear(values, layer.weight, layer.bias)  # 1 * new_nodes
+    values = F.linear(values, layer.weight.detach(), layer.bias.detach())  # 1 * new_nodes
     # ep_num * nodes, weight: new_nodes * nodes
-    eps = torch.matmul(layer.weight, eps)  # new_nodes, ep_num
+    eps = torch.matmul(layer.weight.detach(), eps)  # new_nodes, ep_num
     return values, eps
 
 

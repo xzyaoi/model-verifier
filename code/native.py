@@ -39,6 +39,7 @@ class Zonotope(nn.Module):
             current_slopes.requires_grad = True
             self.slopes.append(current_slopes)
         current_slopes = self.slopes[relu_count]
+        new_eps_flat = eps_flat.clone()
         for idx, _ in enumerate(values_flat):
             u, l = upper[idx], lower[idx]
             if u <= 0:
@@ -49,16 +50,14 @@ class Zonotope(nn.Module):
                 pass
             else:
                 base = u / (u - l)
-                slope = current_slopes[idx]
-                if slope <= base:
-                    term = (1 - slope) * u / 2
+                if current_slopes[idx] <= base:
+                    term = (1 - current_slopes[idx]) * u / 2
                 else:
-                    term = -l * slope / 2
-                new_val = slope.detach() * values_flat[idx]
-                values_flat[idx] = new_val + term
-                eps_flat[idx] = torch.cat(
-                    (slope.detach() * eps_flat[idx][:-1], torch.Tensor([term])))
-        return values_flat.view(values.shape), eps_flat.view(eps.shape)
+                    term = -l * current_slopes[idx] / 2
+                values_flat[idx] = current_slopes[idx].clone() * values_flat[idx].clone() + term.clone()
+                new_eps_flat[idx] = torch.cat(
+                    (current_slopes[idx].clone() * eps_flat[idx][:-1].clone(), torch.Tensor([term]).clone()))
+        return values_flat.view(values.shape), new_eps_flat.view(eps.shape)
 
     def get_bound(self, values, eps):
         abs_eps = torch.abs(eps)
@@ -117,10 +116,9 @@ class SlopeLoss(torch.nn.Module):
         upper = torch.cat([upper[0:label], upper[label+1:]])
         max_u = torch.max(upper)
         d_pos = true_upper - true_lower
-        violate_u = [u-true_lower for u in upper if u > true_lower]
+        violate_u = [u- 2 * true_lower for u in upper if u > true_lower]
         d_neg = sum(violate_u) / (len(violate_u)+1)
-        # loss_val = d_neg * (1+2*np.log(len(violate_u)))
-        loss_val = max_u - true_lower
+        loss_val = d_neg
         # we wish d_neg to be larger and d_pos to be smaller
         print("d_pos=%0.2f, d_neg=%0.2f, loss=%0.2f, nov=%d" % (d_pos, d_neg, loss_val, len(violate_u)))
         return loss_val, len(violate_u)

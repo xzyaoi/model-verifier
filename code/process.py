@@ -4,6 +4,10 @@ from native import SlopeLoss
 
 epochs = 200
 
+def adjust_learning_rate(optimizer, lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
 def verify(net, inputs, eps, true_label):
     with torch.autograd.set_detect_anomaly(True):
         model = Zonotope(net.layers, eps)
@@ -12,14 +16,14 @@ def verify(net, inputs, eps, true_label):
             # init slopes with u/(u-l)
             u,l = model(inputs)
         param_groups = []
-        current_lr = 0.02
+        current_lr = 0.008
         for each in model.slopes:
             current_lr = current_lr * 4
             param_groups.append({
                 'params': each,
                 'lr': current_lr
             })
-        optimizer = torch.optim.Adam(param_groups, lr=0.001)
+        optimizer = torch.optim.Adam(param_groups)
         # optimizer = torch.optim.SGD(param_groups, momentum=0.95, weight_decay=0.05, nesterov=True)
         for i in range(epochs):
             optimizer.zero_grad()

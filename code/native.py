@@ -8,10 +8,6 @@ class Zonotope(nn.Module):
         super(Zonotope, self).__init__()
         self.layers = layers
         self.slopes = []
-        # initialize slopes
-        for index, layer in enumerate(layers):
-            if type(layer) is torch.nn.modules.activation.ReLU:
-                self.slopes.append(torch.rand(layers[index-1].out_features))
         self.eps = eps
 
     def affine(self, values, eps, layer):
@@ -35,7 +31,7 @@ class Zonotope(nn.Module):
         upper, lower = self.get_bound(values_flat, eps_flat)
         if len(self.slopes)<relu_count+1:
             # init slopes
-            current_slopes = torch.Tensor(upper/(upper-lower))
+            current_slopes = torch.nn.Parameter(upper/(upper-lower))
             self.slopes.append(current_slopes)
         current_slopes = self.slopes[relu_count]
         for idx, _ in enumerate(values_flat):
@@ -54,7 +50,8 @@ class Zonotope(nn.Module):
                     term = (1 - slope) * u / 2
                 else:
                     term = -l * slope / 2
-                values_flat[idx] = slope * values_flat[idx] + term
+                new_val = slope.data * values_flat[idx].data
+                values_flat[idx] = new_val + term
                 eps_flat[idx] = torch.cat(
                     (slope * eps_flat[idx][:-1], torch.Tensor([term])))
         return values_flat.view(values.shape), eps_flat.view(eps.shape)
@@ -114,5 +111,4 @@ class SlopeLoss(torch.nn.Module):
         true_lower = lower.tolist()[label]
         violate_u = [u-true_lower for u in upper if u > true_lower]
         loss_val = sum(violate_u) / len(violate_u)
-        print(loss_val)
-        return loss_val
+        return loss_val, len(violate_u)

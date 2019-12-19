@@ -25,10 +25,42 @@ class Zonotope(nn.Module):
                                          padding=list(layer.padding) + [0])
         return values, eps
 
+    # def relu(self, values, eps, relu_count):
+    #     values_flat = values.flatten()
+    #     # eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
+    #     # 1 * nodes
+    #     eps = torch.cat((eps, torch.zeros(np.prod(values.shape), 1).view(
+    #         list(eps.shape)[:-1] + [1])), dim=-1)
+    #     eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
+    #     upper, lower = self.get_bound(values_flat, eps_flat)
+    #     if len(self.slopes) < relu_count+1:
+    #         # init slopes
+    #         current_slopes = upper/(upper-lower)
+    #         current_slopes.requires_grad = True
+    #         self.slopes.append(current_slopes)
+    #     current_slopes = self.slopes[relu_count]
+    #     new_eps_flat = eps_flat.clone()
+    #     for idx, _ in enumerate(values_flat):
+    #         u, l = upper[idx], lower[idx]
+    #         if u <= 0:
+    #             values_flat[idx] = 0
+    #             eps_flat[idx].fill_(0)
+    #             pass
+    #         elif l >= 0:
+    #             pass
+    #         else:
+    #             base = u / (u - l)
+    #             if current_slopes[idx] <= base:
+    #                 term = (1 - current_slopes[idx]) * u / 2
+    #             else:
+    #                 term = -l * current_slopes[idx] / 2
+    #             values_flat[idx] = current_slopes[idx] * values_flat[idx].clone() + term
+    #             new_eps_flat[idx] = torch.cat(
+    #                 (current_slopes[idx] * eps_flat[idx][:-1].clone(), torch.Tensor([term])))
+    #     return values_flat.view(values.shape), new_eps_flat.view(eps.shape)
+    
     def relu(self, values, eps, relu_count):
         values_flat = values.flatten()
-        # eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
-        # 1 * nodes
         eps = torch.cat((eps, torch.zeros(np.prod(values.shape), 1).view(
             list(eps.shape)[:-1] + [1])), dim=-1)
         eps_flat = eps.view(np.prod(list(eps.shape)[:-1]), eps.shape[-1])
@@ -40,24 +72,28 @@ class Zonotope(nn.Module):
             self.slopes.append(current_slopes)
         current_slopes = self.slopes[relu_count]
         new_eps_flat = eps_flat.clone()
-        for idx, _ in enumerate(values_flat):
-            u, l = upper[idx], lower[idx]
-            if u <= 0:
-                values_flat[idx] = 0
-                eps_flat[idx].fill_(0)
-                pass
-            elif l >= 0:
-                pass
-            else:
-                base = u / (u - l)
-                if current_slopes[idx] <= base:
-                    term = (1 - current_slopes[idx]) * u / 2
-                else:
-                    term = -l * current_slopes[idx] / 2
-                values_flat[idx] = current_slopes[idx] * values_flat[idx].clone() + term
-                new_eps_flat[idx] = torch.cat(
-                    (current_slopes[idx] * eps_flat[idx][:-1].clone(), torch.Tensor([term])))
+        tmp = list(map(lambda a0, ep, u, l, slope: self.slope_process(a0, ep, u, l, slope),
+            values_flat, new_eps_flat, upper, lower, current_slopes))
+        values_flat = torch.stack([x[0] for x in tmp])
+        new_eps_flat = torch.stack([x[1] for x in tmp])
         return values_flat.view(values.shape), new_eps_flat.view(eps.shape)
+
+    def slope_process(self, a0, eps, u, l, slope):
+        base = u/(u-l)
+        if u <= 0:
+            return torch.zeros(1)[0], eps.clone().fill_(0)
+        elif l >= 0:
+            return a0, eps
+        else:
+            if slope <= base:
+                term = (1 - slope) * u / 2
+            else:
+                term = -l * slope / 2
+            new_val = slope * a0.clone() + term
+            new_eps = torch.cat(
+                (slope * eps[:-1].clone(), torch.Tensor([term])))
+        return [new_val, new_eps]
+
 
     def get_bound(self, values, eps):
         abs_eps = torch.abs(eps.clone())

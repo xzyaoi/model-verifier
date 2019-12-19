@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-
 class Zonotope(nn.Module):
     def __init__(self, layers, eps):
         super(Zonotope, self).__init__()
@@ -36,7 +35,8 @@ class Zonotope(nn.Module):
         upper, lower = self.get_bound(values_flat, eps_flat)
         if len(self.slopes) < relu_count+1:
             # init slopes
-            current_slopes = torch.nn.Parameter(upper/(upper-lower))
+            current_slopes = upper/(upper-lower)
+            current_slopes.requires_grad = True
             self.slopes.append(current_slopes)
         current_slopes = self.slopes[relu_count]
         for idx, _ in enumerate(values_flat):
@@ -57,11 +57,11 @@ class Zonotope(nn.Module):
                 new_val = slope.detach() * values_flat[idx]
                 values_flat[idx] = new_val + term
                 eps_flat[idx] = torch.cat(
-                    (slope * eps_flat[idx][:-1], torch.Tensor([term])))
+                    (slope.detach() * eps_flat[idx][:-1], torch.Tensor([term])))
         return values_flat.view(values.shape), eps_flat.view(eps.shape)
 
     def get_bound(self, values, eps):
-        abs_eps = torch.abs(eps.detach())
+        abs_eps = torch.abs(eps)
         sum_eps = torch.sum(abs_eps, dim=-1)
         # abs_eps = torch.sum(torch.abs(eps), dim=-1)
         upper = values + sum_eps
@@ -115,10 +115,12 @@ class SlopeLoss(torch.nn.Module):
         true_upper = upper[label]
         # remove true upper
         upper = torch.cat([upper[0:label], upper[label+1:]])
+        max_u = torch.max(upper)
         d_pos = true_upper - true_lower
         violate_u = [u-true_lower for u in upper if u > true_lower]
-        d_neg = sum(violate_u) / len(violate_u)
-        loss_val = abs(d_neg)
+        d_neg = sum(violate_u) / (len(violate_u)+1)
+        # loss_val = d_neg * (1+2*np.log(len(violate_u)))
+        loss_val = max_u - true_lower
         # we wish d_neg to be larger and d_pos to be smaller
         print("d_pos=%0.2f, d_neg=%0.2f, loss=%0.2f, nov=%d" % (d_pos, d_neg, loss_val, len(violate_u)))
         return loss_val, len(violate_u)

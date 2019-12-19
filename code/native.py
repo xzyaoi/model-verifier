@@ -61,9 +61,11 @@ class Zonotope(nn.Module):
 
 
     def get_bound(self, values, eps):
-        abs_eps = torch.sum(torch.abs(eps), dim=-1)
-        upper = values + abs_eps
-        lower = values - abs_eps
+        abs_eps = torch.abs(eps.detach())
+        sum_eps = torch.sum(abs_eps, dim=-1)
+        # abs_eps = torch.sum(torch.abs(eps), dim=-1)
+        upper = values + sum_eps
+        lower = values - sum_eps
         return upper, lower
 
     def forward(self, inputs):
@@ -110,7 +112,7 @@ class SlopeLoss(torch.nn.Module):
     def forward(self, upper, lower, label):
         true_upper = upper.tolist()[label]
         true_lower = lower.tolist()[label]
-        violate_u = [u for u in upper if u > true_lower]
+        violate_u = [u-true_lower for u in upper if u > true_lower]
         loss_val = sum(violate_u) / len(violate_u)
         print(loss_val)
         return loss_val

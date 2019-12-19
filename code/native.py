@@ -54,13 +54,13 @@ class Zonotope(nn.Module):
                     term = (1 - current_slopes[idx]) * u / 2
                 else:
                     term = -l * current_slopes[idx] / 2
-                values_flat[idx] = current_slopes[idx].clone() * values_flat[idx].clone() + term.clone()
+                values_flat[idx] = current_slopes[idx] * values_flat[idx].clone() + term
                 new_eps_flat[idx] = torch.cat(
-                    (current_slopes[idx].clone() * eps_flat[idx][:-1].clone(), torch.Tensor([term]).clone()))
+                    (current_slopes[idx] * eps_flat[idx][:-1].clone(), torch.Tensor([term])))
         return values_flat.view(values.shape), new_eps_flat.view(eps.shape)
 
     def get_bound(self, values, eps):
-        abs_eps = torch.abs(eps)
+        abs_eps = torch.abs(eps.clone())
         sum_eps = torch.sum(abs_eps, dim=-1)
         # abs_eps = torch.sum(torch.abs(eps), dim=-1)
         upper = values + sum_eps
@@ -104,6 +104,8 @@ class Zonotope(nn.Module):
         upper, lower = self.get_bound(values, eps)
         return upper, lower
 
+def sigmoid(x):
+    return (torch.exp(x)) / (1 + torch.exp(x))
 
 class SlopeLoss(torch.nn.Module):
     def __init__(self):
@@ -116,8 +118,8 @@ class SlopeLoss(torch.nn.Module):
         upper = torch.cat([upper[0:label], upper[label+1:]])
         max_u = torch.max(upper)
         d_pos = true_upper - true_lower
-        violate_u = [u- 2 * true_lower for u in upper if u > true_lower]
-        d_neg = sum(violate_u) / (len(violate_u)+1)
+        violate_u = [u - true_lower for u in upper if u > true_lower]
+        d_neg = sum(violate_u)
         loss_val = d_neg
         # we wish d_neg to be larger and d_pos to be smaller
         print("d_pos=%0.2f, d_neg=%0.2f, loss=%0.2f, nov=%d" % (d_pos, d_neg, loss_val, len(violate_u)))

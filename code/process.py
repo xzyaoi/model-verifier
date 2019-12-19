@@ -16,9 +16,9 @@ def verify(net, inputs, eps, true_label):
             # init slopes with u/(u-l)
             u,l = model(inputs)
         param_groups = []
-        current_lr = 0.008
+        current_lr = 0.3
         for each in model.slopes:
-            current_lr = current_lr * 4
+            current_lr = current_lr * 1
             param_groups.append({
                 'params': each,
                 'lr': current_lr

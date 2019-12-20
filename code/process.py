@@ -1,12 +1,19 @@
 import torch
-from native import Zonotope
-from native import SlopeLoss
+from module import Zonotope
+from module import SlopeLoss
 
-epochs = 1
+epochs = 150
 
 def adjust_learning_rate(optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+
+def _get_verify_result(u,l,true_label):
+    print(u)
+    print(l)
+    upper, lower = u.tolist(), l.tolist()
+    upper.remove(upper[true_label])
+    return lower[true_label] > max(upper)
 
 def verify(net, inputs, eps, true_label):
     with torch.autograd.set_detect_anomaly(True):
@@ -15,8 +22,11 @@ def verify(net, inputs, eps, true_label):
         with torch.no_grad():
             # init slopes with u/(u-l)
             u,l = model(inputs)
+            result = _get_verify_result(u,l,true_label)
+            if result:
+                return result
         param_groups = []
-        current_lr = 0.3
+        current_lr = 0.25
         for each in model.slopes:
             current_lr = current_lr * 1
             param_groups.append({
@@ -28,22 +38,14 @@ def verify(net, inputs, eps, true_label):
         for i in range(epochs):
             optimizer.zero_grad()
             u, l = model(inputs.detach())
-            # print(l)
-            # print(u)
-            loss, number_of_violations = slopeloss(u, l, true_label)
-            loss.backward()
-            # scheduler.step(number_of_violations)
-            upper, lower = u.tolist(), l.tolist()
-            upper.remove(upper[true_label])
-            result = lower[true_label] > max(upper)
+            result = _get_verify_result(u,l,true_label)
             if result:
-                print(result)
                 return result
-                break
+            loss = slopeloss(u, l, true_label)
+            loss.backward()
             optimizer.step()
             # restrict slopes to be between 0 and 1
             with torch.no_grad():
                 for param in model.slopes:
                     param.clamp_(0, 1)
-            # print(model.slopes)
         return False

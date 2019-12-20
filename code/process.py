@@ -3,6 +3,7 @@ from module import Zonotope
 from module import SlopeLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+# epochs = 20000
 epochs = 20000
 
 def adjust_learning_rate(optimizer, lr):
@@ -19,7 +20,6 @@ def _get_verify_result(u,l,true_label):
 def verify(net, inputs, eps, true_label):
     with torch.autograd.set_detect_anomaly(True):
         model = Zonotope(net.layers, eps, true_label)
-        model.verified.add(true_label)
         slopeloss = SlopeLoss()
         with torch.no_grad():
             # init slopes with u/(u-l)
@@ -30,7 +30,7 @@ def verify(net, inputs, eps, true_label):
         param_groups = []
         current_lr = 0.22
         for each in model.slopes:
-            current_lr = current_lr * 1.2
+            current_lr = current_lr * 1.15
             param_groups.append({
                 'params': each,
                 'lr': current_lr
@@ -44,7 +44,7 @@ def verify(net, inputs, eps, true_label):
             result = _get_verify_result(model.uppers.copy(),model.true_lower,true_label)
             if result:
                 return True
-            loss = slopeloss(u, l, true_label, model.verified)
+            loss = slopeloss(u, l, true_label)
             loss.backward()
             optimizer.step()
             with torch.no_grad():

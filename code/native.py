@@ -44,7 +44,7 @@ class Zonotope(nn.Module):
     #         u, l = upper[idx], lower[idx]
     #         if u <= 0:
     #             values_flat[idx] = 0
-    #             eps_flat[idx].fill_(0)
+    #             new_eps_flat[idx].fill_(0)
     #             pass
     #         elif l >= 0:
     #             pass
@@ -79,12 +79,12 @@ class Zonotope(nn.Module):
         return values_flat.view(values.shape), new_eps_flat.view(eps.shape)
 
     def slope_process(self, a0, eps, u, l, slope):
-        base = u/(u-l)
         if u <= 0:
             return torch.zeros(1)[0], eps.clone().fill_(0)
         elif l >= 0:
             return a0, eps
         else:
+            base = u/(u-l)
             if slope <= base:
                 term = (1 - slope) * u / 2
             else:
@@ -114,6 +114,7 @@ class Zonotope(nn.Module):
         values = (upper + lower)
         eps = (values - lower)
         eps = eps.flatten().diag()
+        eps = eps.view(list(values.shape) + [len(eps)])
         relu_count = 0
         # real forward
         for layer in self.layers:

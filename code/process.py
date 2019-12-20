@@ -35,7 +35,7 @@ def verify(net, inputs, eps, true_label):
                 'params': each,
                 'lr': current_lr
             })
-        optimizer = None
+        optimizer = torch.optim.Adam(param_groups)
         # optimizer = torch.optim.SGD(param_groups, momentum=0.95, weight_decay=0.05, nesterov=True)
         scheduler = ReduceLROnPlateau(optimizer, 'max',verbose=False,patience=10, factor=0.95)
         for i in range(epochs):

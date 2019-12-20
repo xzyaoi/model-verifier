@@ -4,8 +4,12 @@ import torch.nn.functional as F
 import numpy as np
 
 class Zonotope(nn.Module):
-    def __init__(self, layers, eps):
+    def __init__(self, layers, eps, true_label):
         super(Zonotope, self).__init__()
+        self.verified = set([])
+        self.uppers = None
+        self.true_label = true_label
+        self.true_lower = -99999999999999
         self.layers = layers
         self.slopes = []
         self.eps = eps
@@ -104,6 +108,12 @@ class Zonotope(nn.Module):
                 values = (values - mean) / sigma
                 eps = eps / sigma
         upper, lower = self.get_bound(values, eps)
+        if self.uppers is None:
+            self.uppers = upper.tolist()
+        else:
+            self.uppers = [upper[i] if upper[i] < self.uppers[i] else self.uppers[i] for i in range(len(upper))]
+            tmp = lower.tolist()[self.true_label]
+            self.true_lower = tmp if tmp > self.true_lower else self.true_lower
         return upper, lower
 
 def sigmoid(x):
@@ -113,11 +123,12 @@ class SlopeLoss(torch.nn.Module):
     def __init__(self):
         super(SlopeLoss, self).__init__()
 
-    def forward(self, upper, lower, label):
+    def forward(self, upper, lower, label, verified):
         true_lower = lower[label]
         true_upper = upper[label]
-        violate_u = [u for u in upper if u>true_lower and u != true_upper]
+        violate_u = [sigmoid(upper[i]) - sigmoid(true_lower) for i in range(len(upper)) if upper[i]>true_lower and i != label and i not in verified]
         nov  = len(violate_u)
         loss_val = sigmoid(upper-lower).mean()
-        print("loss=%0.2f, nov=%d" % (loss_val, nov))
+        # loss_val = sum(violate_u)
+        print("loss=%0.2f, nov=%d" % (loss_val, len(verified)))
         return loss_val

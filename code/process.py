@@ -33,17 +33,19 @@ def verify(net, inputs, eps, true_label):
                 'params': each,
                 'lr': current_lr
             })
-        optimizer = torch.optim.Adam(param_groups)
+        optimizer = None
         # optimizer = torch.optim.SGD(param_groups, momentum=0.95, weight_decay=0.05, nesterov=True)
         for i in range(epochs):
-            optimizer.zero_grad()
             u, l = model(inputs.detach())
             result = _get_verify_result(u,l,true_label)
             if result:
                 return result
+            if optimizer is None:
+                optimizer = torch.optim.Adam(param_groups)
             loss = slopeloss(u, l, true_label)
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
             # restrict slopes to be between 0 and 1
             with torch.no_grad():
                 for param in model.slopes:

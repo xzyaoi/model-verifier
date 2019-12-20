@@ -130,5 +130,5 @@ class SlopeLoss(torch.nn.Module):
         nov  = len(violate_u)
         loss_val = sigmoid(upper-lower).mean()
         # loss_val = sum(violate_u)
-        print("loss=%0.2f, nov=%d" % (loss_val, len(verified)))
+        # print("loss=%0.2f, nov=%d" % (loss_val, len(verified)))
         return loss_val

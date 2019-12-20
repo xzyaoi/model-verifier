@@ -9,10 +9,6 @@ INPUT_SIZE = 28
 
 
 def analyze(net, inputs, eps, true_label):
-    print("True Label: %d" % true_label)
-    print("Epsilon: %f" % eps)
-    print("real output")
-    # print(net.layers(inputs))
     return verify(net, inputs, eps, true_label)
 
 

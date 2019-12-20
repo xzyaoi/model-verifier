@@ -3,16 +3,16 @@ from module import Zonotope
 from module import SlopeLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-epochs = 200
+epochs = 20000
 
 def adjust_learning_rate(optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
 def _get_verify_result(u,l,true_label):
-    print(u)
-    print(l)
-    print([i for i in range(10) if u[i] > l and i != true_label])
+    # print(u)
+    # print(l)
+    # print([i for i in range(10) if u[i] > l and i != true_label])
     u.remove(u[true_label])
     return l > max(u)
 
@@ -30,7 +30,7 @@ def verify(net, inputs, eps, true_label):
         param_groups = []
         current_lr = 0.22
         for each in model.slopes:
-            current_lr = current_lr * 1.1
+            current_lr = current_lr * 1.2
             param_groups.append({
                 'params': each,
                 'lr': current_lr
